@@ -27,6 +27,7 @@ if __name__ == '__main__':
 
     n_samples = 100
     n_permutations = 1000
+    n_repetitions = 1000
 
     print("These are the correlations among the three variables a, b and c:")
     r_ab = 0.0
@@ -52,47 +53,52 @@ if __name__ == '__main__':
     print("det(cov) = %f" % det_cov)
     assert(det_cov > 0.0)
 
-    print("Sampling %d points from the multivariate_normal(0,cov)" % n_samples)
-    X = np.random.multivariate_normal(mean=np.zeros(3), cov=cov,
-                                      size=n_samples)
+    p_values = np.zeros((n_repetitions, 3), dtype=np.float)
+    for j in range(n_repetitions):
+        print("Iteration %d" % j)
+        print("Sampling %d points from multivariate_normal(0,cov)" % n_samples)
 
-    A, B, C = compute_ABC(X)
+        X = np.random.multivariate_normal(mean=np.zeros(3), cov=cov,
+                                          size=n_samples)
 
-    rho_AB, rho_AC, rho_BC = compute_rhos(A, B, C)
-    print("rho_AB = %f" % rho_AB)
-    print("rho_AC = %f" % rho_AC)
-    print("rho_BC = %f" % rho_BC)
+        A, B, C = compute_ABC(X)
 
-    print("Starting %d permutations." % n_permutations)
-    rho_AB_permuted = np.zeros(n_permutations)
-    rho_AC_permuted = np.zeros(n_permutations)
-    rho_BC_permuted = np.zeros(n_permutations)
-    for i in range(n_permutations):
-        idxA = np.random.permutation(n_samples)
-        A_permuted = A[idxA, :][:, idxA]
-        idxB = np.random.permutation(n_samples)
-        B_permuted = A[idxB, :][:, idxB]
-        idxC = np.random.permutation(n_samples)
-        C_permuted = A[idxC, :][:, idxC]
-        # B_permuted, C_permuted = B, C
-        rho_AB_permuted[i], \
-            rho_AC_permuted[i], \
-            rho_BC_permuted[i] = compute_rhos(A_permuted,
-                                              B_permuted,
-                                              C_permuted)
-        # print("%d) \t %0.5f \t %0.5f \t %0.5f" % (i, rho_AB_permuted[i],
-        #                                           rho_AC_permuted[i],
-        #                                           rho_BC_permuted[i]))
+        rho_AB, rho_AC, rho_BC = compute_rhos(A, B, C)
+        print("rho_AB = %f" % rho_AB)
+        print("rho_AC = %f" % rho_AC)
+        print("rho_BC = %f" % rho_BC)
 
-    p_value_AB = (rho_AB <= rho_AB_permuted).sum() \
-                 / float(len(rho_AB_permuted))
-    p_value_AC = (rho_AC <= rho_AC_permuted).sum() \
-                 / float(len(rho_AC_permuted))
-    p_value_BC = (rho_BC <= rho_BC_permuted).sum() \
-                 / float(len(rho_BC_permuted))
-    print("p_value_AB = %f" % p_value_AB)
-    print("p_value_AC = %f" % p_value_AC)
-    print("p_value_BC = %f" % p_value_BC)
+        print("Starting permutations.")
+        rho_AB_permuted = np.zeros(n_permutations)
+        rho_AC_permuted = np.zeros(n_permutations)
+        rho_BC_permuted = np.zeros(n_permutations)
+        for i in range(n_permutations):
+            idxA = np.random.permutation(n_samples)
+            A_permuted = A[idxA, :][:, idxA]
+            # idxB = np.random.permutation(n_samples)
+            # B_permuted = A[idxB, :][:, idxB]
+            # idxC = np.random.permutation(n_samples)
+            # C_permuted = A[idxC, :][:, idxC]
+            B_permuted, C_permuted = B, C
+            rho_AB_permuted[i], \
+                rho_AC_permuted[i], \
+                rho_BC_permuted[i] = compute_rhos(A_permuted,
+                                                  B_permuted,
+                                                  C_permuted)
+            # print("%d) \t %0.5f \t %0.5f \t %0.5f" % (i, rho_AB_permuted[i],
+            #                                           rho_AC_permuted[i],
+            #                                           rho_BC_permuted[i]))
+
+        p_value_AB = (rho_AB <= rho_AB_permuted).sum() \
+                     / float(len(rho_AB_permuted))
+        p_value_AC = (rho_AC <= rho_AC_permuted).sum() \
+                     / float(len(rho_AC_permuted))
+        p_value_BC = (rho_BC <= rho_BC_permuted).sum() \
+                     / float(len(rho_BC_permuted))
+        print("p_value_AB = %f" % p_value_AB)
+        print("p_value_AC = %f" % p_value_AC)
+        print("p_value_BC = %f" % p_value_BC)
+        p_values[j] = [p_value_AB, p_value_AC, p_value_BC]
 
     plt.figure()
     plt.subplot(131)
